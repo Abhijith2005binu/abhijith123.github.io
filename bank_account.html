@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Savings Account — Ravi Kumar</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg:        #0F1117;
+    --surface:   #181C27;
+    --border:    #252B3B;
+    --accent:    #4ADE80;
+    --accent-dim:#1A3A28;
+    --warn:      #F87171;
+    --warn-dim:  #3A1A1A;
+    --text:      #E8EAF0;
+    --muted:     #6B7280;
+    --card:      #1C2133;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 16px 60px;
+  }
+
+  /* ── Header ── */
+  .bank-header {
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 36px;
+  }
+  .bank-logo {
+    width: 34px; height: 34px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: grid; place-items: center;
+  }
+  .bank-logo svg { color: #0F1117; }
+  .bank-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* ── Account Card ── */
+  .account-card {
+    width: 100%;
+    max-width: 520px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 28px 24px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .account-card::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(74,222,128,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .account-label {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .account-name {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .account-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  .balance-section { display: flex; flex-direction: column; gap: 4px; }
+  .balance-label { font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; font-family: 'IBM Plex Mono', monospace; }
+  .balance-amount {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 36px;
+    font-weight: 600;
+    color: var(--accent);
+    transition: transform 0.25s ease;
+  }
+  .balance-amount.bump { transform: scale(1.06); }
+  .balance-note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .balance-note span { color: var(--accent); font-weight: 500; }
+
+  /* ── Actions ── */
+  .actions {
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    cursor: pointer;
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    transition: border-color 0.18s, background 0.18s;
+    width: 100%;
+    text-align: left;
+  }
+  .action-btn:hover { border-color: var(--accent); background: #1a2430; }
+  .action-btn:active { transform: scale(0.99); }
+  .action-btn .icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    font-size: 17px;
+  }
+  .action-btn.deposit .icon  { background: var(--accent-dim); color: var(--accent); }
+  .action-btn.withdraw .icon { background: var(--warn-dim);   color: var(--warn);   }
+  .action-btn.balance .icon  { background: #1e2a3a;           color: #60A5FA;       }
+
+  .btn-label { display: flex; flex-direction: column; gap: 1px; }
+  .btn-title  { font-size: 14px; font-weight: 600; }
+  .btn-sub    { font-size: 12px; color: var(--muted); font-weight: 400; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    width: min(440px, calc(100vw - 32px));
+    transform: translateY(14px);
+    transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-title {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .modal-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 22px;
+    line-height: 1.5;
+  }
+
+  .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .input-group label { font-size: 12px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+
+  .rupee-input {
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .rupee-input:focus-within { border-color: var(--accent); }
+  .rupee-symbol {
+    padding: 0 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 17px;
+    color: var(--muted);
+    border-right: 1px solid var(--border);
+    height: 48px;
+    display: grid; place-items: center;
+  }
+  .rupee-input input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 20px;
+    padding: 0 14px;
+    height: 48px;
+  }
+
+  .modal-actions { display: flex; gap: 10px; }
+  .btn-cancel, .btn-confirm {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s, transform 0.1s;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .btn-cancel  { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+  .btn-confirm { background: var(--accent); color: #0F1117; }
+  .btn-confirm.danger { background: var(--warn); }
+  .btn-cancel:hover, .btn-confirm:hover { opacity: 0.85; }
+  .btn-cancel:active, .btn-confirm:active { transform: scale(0.97); }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 32px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 12px 22px;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+    transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.25s;
+    opacity: 0;
+    z-index: 200;
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast.success { border-color: var(--accent); color: var(--accent); }
+  .toast.error   { border-color: var(--warn);   color: var(--warn);   }
+  .toast.info    { border-color: #60A5FA;        color: #60A5FA;       }
+
+  /* ── Log ── */
+  .log-section {
+    width: 100%;
+    max-width: 520px;
+  }
+  .log-title {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-family: 'IBM Plex Mono', monospace;
+    margin-bottom: 10px;
+  }
+  .log-list { display: flex; flex-direction: column; gap: 8px; }
+  .log-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 16px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 13px;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: translateY(0); } }
+  .log-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .log-dot.dep { background: var(--accent); }
+  .log-dot.with { background: var(--warn); }
+  .log-dot.bal  { background: #60A5FA; }
+  .log-desc { flex: 1; color: var(--muted); }
+  .log-desc strong { color: var(--text); font-weight: 500; }
+  .log-time { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); }
+  .log-empty { color: var(--muted); font-size: 13px; padding: 8px 2px; }
+
+  /* balance modal display */
+  .balance-display-box {
+    background: var(--accent-dim);
+    border: 1px solid rgba(74,222,128,0.25);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .balance-display-box .lbl { font-size: 12px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; font-family: 'IBM Plex Mono', monospace; margin-bottom: 6px; }
+  .balance-display-box .amt { font-family: 'IBM Plex Mono', monospace; font-size: 32px; font-weight: 600; color: var(--accent); }
+  .balance-display-box .avail { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .balance-display-box .avail span { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="bank-header">
+  <div class="bank-logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="6" width="20" height="15" rx="3"/>
+      <path d="M16 10a2 2 0 0 0-4 0v6"/>
+      <path d="M12 10a2 2 0 0 1 4 0"/>
+      <path d="M2 10h20"/>
+    </svg>
+  </div>
+  <span class="bank-name">Bharat Savings Bank</span>
+</header>
+
+<!-- Account Card -->
+<div class="account-card">
+  <div class="account-label">Savings Account</div>
+  <div class="account-name">Ravi Kumar</div>
+  <div class="account-number">XXXX-XXXX-4821</div>
+  <hr class="divider">
+  <div class="balance-section">
+    <div class="balance-label">Available Balance</div>
+    <div class="balance-amount" id="balanceDisplay">₹5,000.00</div>
+    <div class="balance-note">Minimum balance required: <span>₹1,000</span></div>
+  </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="actions">
+  <button class="action-btn deposit" onclick="openModal('deposit')">
+    <div class="icon">↑</div>
+    <div class="btn-label">
+      <span class="btn-title">Deposit Money</span>
+      <span class="btn-sub">Add funds to your account</span>
+    </div>
+  </button>
+  <button class="action-btn withdraw" onclick="openModal('withdraw')">
+    <div class="icon">↓</div>
+    <div class="btn-label">
+      <span class="btn-title">Withdraw Money</span>
+      <span class="btn-sub">Subject to ₹1,000 minimum balance</span>
+    </div>
+  </button>
+  <button class="action-btn balance" onclick="openModal('balance')">
+    <div class="icon">◎</div>
+    <div class="btn-label">
+      <span class="btn-title">Display Balance</span>
+      <span class="btn-sub">View full account details</span>
+    </div>
+  </button>
+</div>
+
+<!-- Transaction Log -->
+<div class="log-section">
+  <div class="log-title">Transaction History</div>
+  <div class="log-list" id="logList">
+    <div class="log-empty">No transactions yet.</div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <!-- filled by JS -->
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const MIN_BALANCE = 1000;
+  let balance = 5000;
+  let logs = [];
+
+  const fmt = (n) => '₹' + n.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const now = () => new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+
+  function updateBalanceDisplay() {
+    const el = document.getElementById('balanceDisplay');
+    el.textContent = fmt(balance);
+    el.classList.remove('bump');
+    void el.offsetWidth;
+    el.classList.add('bump');
+    setTimeout(() => el.classList.remove('bump'), 300);
+  }
+
+  function showToast(msg, type='success') {
+    const t = document.getElementById('toast');
+    const icons = { success: '✓', error: '✗', info: '◎' };
+    t.className = `toast ${type}`;
+    t.innerHTML = `<span>${icons[type]}</span> ${msg}`;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3200);
+  }
+
+  function addLog(type, desc) {
+    logs.unshift({ type, desc, time: now() });
+    renderLog();
+  }
+
+  function renderLog() {
+    const list = document.getElementById('logList');
+    if (logs.length === 0) {
+      list.innerHTML = '<div class="log-empty">No transactions yet.</div>';
+      return;
+    }
+    list.innerHTML = logs.map(l => `
+      <div class="log-item">
+        <div class="log-dot ${l.type}"></div>
+        <div class="log-desc">${l.desc}</div>
+        <div class="log-time">${l.time}</div>
+      </div>
+    `).join('');
+  }
+
+  function openModal(type) {
+    const overlay = document.getElementById('modalOverlay');
+    const modal   = document.getElementById('modal');
+    const avail   = balance - MIN_BALANCE;
+
+    if (type === 'deposit') {
+      modal.innerHTML = `
+        <div class="modal-title">Deposit Money</div>
+        <div class="modal-sub">Enter the amount you want to add to your account.</div>
+        <div class="input-group">
+          <label>Amount</label>
+          <div class="rupee-input">
+            <div class="rupee-symbol">₹</div>
+            <input type="number" id="amtInput" placeholder="0" min="1" autofocus>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+          <button class="btn-confirm" onclick="doDeposit()">Deposit</button>
+        </div>`;
+    } else if (type === 'withdraw') {
+      modal.innerHTML = `
+        <div class="modal-title">Withdraw Money</div>
+        <div class="modal-sub">You can withdraw up to <strong style="color:var(--accent)">${fmt(avail)}</strong> (keeping ₹1,000 as minimum balance).</div>
+        <div class="input-group">
+          <label>Amount</label>
+          <div class="rupee-input">
+            <div class="rupee-symbol">₹</div>
+            <input type="number" id="amtInput" placeholder="0" min="1" max="${avail}" autofocus>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+          <button class="btn-confirm danger" onclick="doWithdraw()">Withdraw</button>
+        </div>`;
+    } else {
+      modal.innerHTML = `
+        <div class="modal-title">Account Balance</div>
+        <div class="modal-sub">Current snapshot of your Bharat Savings account.</div>
+        <div class="balance-display-box">
+          <div class="lbl">Total Balance</div>
+          <div class="amt">${fmt(balance)}</div>
+          <div class="avail">Withdrawable: <span>${fmt(avail)}</span></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-confirm" style="background:var(--surface);color:var(--text);border:1px solid var(--border);" onclick="closeModal()">Close</button>
+        </div>`;
+      addLog('bal', `<strong>Balance enquiry</strong> — ${fmt(balance)}`);
+    }
+
+    overlay.classList.add('open');
+    setTimeout(() => { const inp = document.getElementById('amtInput'); if(inp) inp.focus(); }, 50);
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  function doDeposit() {
+    const val = parseFloat(document.getElementById('amtInput').value);
+    if (!val || val <= 0) { showToast('Enter a valid amount.', 'error'); return; }
+    balance += val;
+    updateBalanceDisplay();
+    addLog('dep', `<strong>Deposited ${fmt(val)}</strong> — Balance: ${fmt(balance)}`);
+    closeModal();
+    showToast(`${fmt(val)} deposited successfully!`, 'success');
+  }
+
+  function doWithdraw() {
+    const val = parseFloat(document.getElementById('amtInput').value);
+    if (!val || val <= 0) { showToast('Enter a valid amount.', 'error'); return; }
+    const avail = balance - MIN_BALANCE;
+    if (val > avail) {
+      showToast(`Cannot withdraw more than ${fmt(avail)} (min. balance rule).`, 'error');
+      return;
+    }
+    balance -= val;
+    updateBalanceDisplay();
+    addLog('with', `<strong>Withdrew ${fmt(val)}</strong> — Balance: ${fmt(balance)}`);
+    closeModal();
+    showToast(`${fmt(val)} withdrawn successfully!`, 'success');
+  }
+
+  // Close on overlay click
+  document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // Enter key in input
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  updateBalanceDisplay();
+</script>
+</body>
+</html>
